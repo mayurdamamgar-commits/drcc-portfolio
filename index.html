@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design of RCC Structures - Course Project</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- GSAP for DOM Animation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <style>
+        :root {
+            --concrete: #e0e0e0;
+            --steel: #2d3748;
+            --accent: #f97316; /* Orange for safety/construction vibe */
+        }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #0f172a; /* Dark slate background */
+            color: white;
+            overflow-x: hidden;
+            margin: 0;
+        }
+
+        h1, h2, h3, .brand {
+            font-family: 'Rajdhani', sans-serif;
+            text-transform: uppercase;
+        }
+
+        /* Canvas container for Three.js */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.6; /* Slight fade to make text readable */
+        }
+
+        /* Glassmorphism Cards */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .nav-link {
+            position: relative;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background-color: var(--accent);
+            transition: width 0.3s;
+        }
+        
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        /* Site Plan CSS Grid Style */
+        .plan-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 2px;
+            background: #475569;
+            padding: 2px;
+            border: 2px solid white;
+        }
+        .room {
+            background: rgba(15, 23, 42, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: #cbd5e1;
+            font-size: 0.8rem;
+            position: relative;
+            transition: background 0.3s;
+        }
+        .room:hover {
+            background: rgba(249, 115, 22, 0.2);
+            color: white;
+        }
+        .column-point {
+            width: 8px;
+            height: 8px;
+            background-color: #f97316;
+            position: absolute;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        
+        /* Specific Styles for Visualizers */
+        .visualizer-container svg {
+            user-select: none;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- 3D Background -->
+    <div id="canvas-container"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 transition-all duration-300 p-6" id="navbar">
+        <div class="max-w-7xl mx-auto flex justify-between items-center glass-card rounded-2xl px-8 py-4">
+            <div class="brand text-2xl font-bold tracking-wider text-white flex items-center gap-2">
+                <div class="w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
+                TEAM A7 DRCC PROJECT
+            </div>
+            <div class="hidden md:flex gap-8 text-sm font-medium tracking-wide text-gray-300">
+                <a href="#home" class="nav-link hover:text-white transition-colors">HOME</a>
+                <a href="#project" class="nav-link hover:text-white transition-colors">PROJECT</a>
+                <a href="#specifications" class="nav-link hover:text-white transition-colors">SPECS</a>
+                <a href="#analysis" class="nav-link hover:text-white transition-colors">ANALYSIS</a>
+                <a href="#design" class="nav-link hover:text-white transition-colors">DESIGN</a>
+                <a href="#site-visit" class="nav-link hover:text-white transition-colors">SITE VISIT</a>
+                <a href="#our-team" class="nav-link hover:text-white transition-colors">TEAM</a>
+            </div>
+            <button class="md:hidden text-white" onclick="toggleMobileMenu()">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="fixed inset-0 z-40 bg-slate-900 bg-opacity-95 transform translate-x-full transition-transform duration-300 flex flex-col justify-center items-center gap-8 md:hidden">
+        <a href="#home" class="text-2xl font-bold text-white" onclick="toggleMobileMenu()">HOME</a>
+        <a href="#project" class="text-2xl font-bold text-white" onclick="toggleMobileMenu()">PROJECT</a>
+        <a href="#specifications" class="text-2xl font-bold text-white" onclick="toggleMobileMenu()">SPECS</a>
+        <a href="#analysis" class="text-2xl font-bold text-white" onclick="toggleMobileMenu()">ANALYSIS</a>
+        <a href="#site-visit" class="text-2xl font-bold text-white" onclick="toggleMobileMenu()">SITE VISIT</a>
+        <a href="#our-team" class="text-2xl font-bold text-white" onclick="toggleMobileMenu()">TEAM</a>
+        <button class="absolute top-8 right-8 text-white" onclick="toggleMobileMenu()">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Hero Section -->
+    <section id="home" class="min-h-screen flex items-center justify-center relative pt-20">
+        <div class="container mx-auto px-6 text-center z-10">
+            <div class="gsap-hero opacity-0 translate-y-10">
+                <span class="text-orange-500 font-bold tracking-[0.2em] text-sm md:text-base uppercase mb-4 block">Course Project DRCC</span>
+                <h1 class="text-5xl md:text-8xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-500">
+                    DESIGN OF<br>RCC STRUCTURES
+                </h1>
+                <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
+                    Course project focusing on the structural design of load-carrying members for a residential building using Indian Standard Codes.
+                </p>
+                <div class="flex flex-col md:flex-row gap-4 justify-center">
+                    <a href="#project" class="group relative px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition-all overflow-hidden">
+                        <span class="relative z-10">EXPLORE PROJECT</span>
+                        <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                    </a>
+                    <a href="#specifications" class="px-8 py-3 border border-gray-500 hover:border-white text-gray-300 hover:text-white font-bold rounded-lg transition-all">
+                        VIEW SPECS
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Scroll Indicator -->
+        <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce text-gray-500">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+            </svg>
+        </div>
+    </section>
+
+    <!-- Project Introduction & Site Plan -->
+    <section id="project" class="py-20 bg-slate-900/50 backdrop-blur-sm border-t border-slate-800">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                
+                <!-- Left: Text Content -->
+                <div class="gsap-fade-left">
+                    <h2 class="text-4xl font-bold mb-6 text-white border-l-4 border-orange-500 pl-4">1. INTRODUCTION</h2>
+                    <div class="glass-card p-8 rounded-xl space-y-4 text-gray-300 mb-8">
+                        <p>
+                            This course project focuses on the <strong>structural design of load-carrying members</strong> for a residential (living) building. 
+                            The aim is to understand the behavior, design principles, and code provisions involved in designing reinforced concrete members 
+                            subjected to dead loads, live loads, and environmental effects.
+                        </p>
+                        <p class="text-sm border-t border-gray-600 pt-4 mt-4">
+                            All designs are carried out in accordance with <strong>Indian Standard Codes</strong>, ensuring safety, serviceability, and durability.
+                        </p>
+                    </div>
+
+                    <h3 class="text-2xl font-bold mb-4 text-white">2. OBJECTIVES</h3>
+                    <ul class="space-y-3 text-gray-400">
+                        <li class="flex items-center gap-3">
+                            <span class="text-orange-500">▸</span> Design RCC structural members for a residential building
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <span class="text-orange-500">▸</span> Understand load calculation and load combinations
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <span class="text-orange-500">▸</span> Apply IS code provisions in practical design
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <span class="text-orange-500">▸</span> Ensure structural safety and serviceability
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Right: Site Plan Visual -->
+                <div class="gsap-fade-right">
+                    <div class="glass-card p-4 rounded-xl">
+                        <div class="flex justify-between items-end mb-4">
+                            <h3 class="text-xl font-bold text-white">SITE PLAN LAYOUT</h3>
+                            <span class="text-xs text-orange-500 font-mono">SCHEMATIC: G+5 RESIDENTIAL</span>
+                        </div>
+                        
+                        <!-- CSS Grid Site Plan -->
+                        <div class="aspect-square w-full plan-grid rounded-lg shadow-2xl relative">
+                            <!-- Room Layout -->
+                            <div class="room col-span-2 row-span-2">
+                                <span class="font-bold">LIVING HALL</span>
+                                <span class="text-xs text-gray-500">5.5m x 6.0m</span>
+                                <div class="column-point top-0 left-0"></div>
+                                <div class="column-point top-0 right-0"></div>
+                                <div class="column-point bottom-0 left-0"></div>
+                            </div>
+                            <div class="room col-span-2 row-span-1">
+                                <span class="font-bold">KITCHEN</span>
+                                <span class="text-xs text-gray-500">4.0m x 3.0m</span>
+                                <div class="column-point top-0 right-0"></div>
+                            </div>
+                            <div class="room col-span-1 row-span-2 col-start-3 row-start-2">
+                                <span class="font-bold">BEDROOM</span>
+                                <span class="text-xs text-gray-500">3.5m x 4.0m</span>
+                                <div class="column-point bottom-0 right-0"></div>
+                            </div>
+                            <div class="room col-span-1 row-span-1 col-start-4 row-start-2">
+                                <span class="font-bold">TOILET</span>
+                            </div>
+                            <div class="room col-span-2 row-span-2 row-start-3">
+                                <span class="font-bold">MASTER BED</span>
+                                <span class="text-xs text-gray-500">4.5m x 4.0m</span>
+                                <div class="column-point bottom-0 left-0"></div>
+                                <div class="column-point bottom-0 right-0"></div>
+                            </div>
+                            <div class="room col-span-2 row-span-1 row-start-4 col-start-3 border-dashed border-gray-400 bg-transparent">
+                                <span class="font-bold">BALCONY</span>
+                            </div>
+                            <div class="room col-span-1 row-span-1 row-start-3 col-start-4 bg-slate-800">
+                                <span class="font-bold">STAIRS</span>
+                            </div>
+
+                            <!-- Dimensions -->
+                            <div class="absolute -bottom-6 left-0 right-0 flex justify-between text-xs text-gray-500 font-mono">
+                                <span>|&lt;--- 12.0 M ---&gt;|</span>
+                            </div>
+                            <div class="absolute top-0 bottom-0 -right-6 flex flex-col justify-center text-xs text-gray-500 font-mono writing-vertical-rl">
+                                <span class="rotate-90">|&lt;--- 10.0 M ---&gt;|</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 text-center">
+                            <span class="text-xs text-gray-500">Structure designed as RCC framed structure for Living Occupancy</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Design Basis & Specifications Section -->
+    <section id="specifications" class="py-20 relative">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold mb-10 text-white text-center gsap-up">DESIGN BASIS & LOADS</h2>
+            
+            <!-- Basis Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12 gsap-up">
+                <div class="glass-card p-4 rounded-lg text-center border-t-2 border-orange-500">
+                    <div class="text-xs text-gray-400 uppercase tracking-widest mb-1">Structure</div>
+                    <div class="text-lg md:text-xl font-bold text-white">RCC Framed</div>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center border-t-2 border-orange-500">
+                    <div class="text-xs text-gray-400 uppercase tracking-widest mb-1">Occupancy</div>
+                    <div class="text-lg md:text-xl font-bold text-white">Residential</div>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center border-t-2 border-orange-500">
+                    <div class="text-xs text-gray-400 uppercase tracking-widest mb-1">Concrete</div>
+                    <div class="text-lg md:text-xl font-bold text-white">Grade M20</div>
+                </div>
+                <div class="glass-card p-4 rounded-lg text-center border-t-2 border-orange-500">
+                    <div class="text-xs text-gray-400 uppercase tracking-widest mb-1">Steel</div>
+                    <div class="text-lg md:text-xl font-bold text-white">Fe 415</div>
+                </div>
+            </div>
+
+            <!-- Loads & Method -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="glass-card p-6 rounded-xl gsap-fade-left">
+                    <h3 class="text-xl font-bold text-orange-500 mb-4">5. LOAD CONSIDERATIONS</h3>
+                    <div class="space-y-4 text-sm text-gray-300">
+                        <div>
+                            <strong class="text-white block">5.1 Dead Load (IS 875 – Part 1)</strong>
+                            <p class="pl-4 border-l border-gray-600">Self-weight of slab, beam, column, wall loads, floor finishes.</p>
+                        </div>
+                        <div>
+                            <strong class="text-white block">5.2 Live Load (IS 875 – Part 2)</strong>
+                            <ul class="pl-4 border-l border-gray-600 list-none">
+                                <li>Residential rooms: <span class="text-orange-400">2 kN/m²</span></li>
+                                <li>Staircase/Corridors: <span class="text-orange-400">3 kN/m²</span></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <strong class="text-white block">5.3 Load Combinations</strong>
+                            <div class="flex gap-2 mt-1">
+                                <span class="bg-slate-800 px-2 py-1 rounded text-xs border border-gray-600">1.5(DL+LL)</span>
+                                <span class="bg-slate-800 px-2 py-1 rounded text-xs border border-gray-600">1.2(DL+LL+WL)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 rounded-xl gsap-fade-right">
+                     <h3 class="text-xl font-bold text-orange-500 mb-4">MEMBER TYPES</h3>
+                     <table class="w-full text-sm text-left">
+                         <thead class="bg-slate-800 text-gray-400">
+                             <tr>
+                                 <th class="p-2 rounded-l">Member</th>
+                                 <th class="p-2 rounded-r">Function</th>
+                             </tr>
+                         </thead>
+                         <tbody class="divide-y divide-gray-700 text-gray-300">
+                             <tr>
+                                 <td class="p-2 font-bold">Slab</td>
+                                 <td class="p-2">Transfers floor loads to beams</td>
+                             </tr>
+                             <tr>
+                                 <td class="p-2 font-bold">Beam</td>
+                                 <td class="p-2">Transfers slab load to columns</td>
+                             </tr>
+                             <tr>
+                                 <td class="p-2 font-bold">Column</td>
+                                 <td class="p-2">Transfers load safely to foundation</td>
+                             </tr>
+                             <tr>
+                                 <td class="p-2 font-bold">Footing</td>
+                                 <td class="p-2">Distributes column load to soil</td>
+                             </tr>
+                         </tbody>
+                     </table>
+                     <div class="mt-4 p-3 bg-slate-800 rounded border border-gray-600 text-center">
+                         <span class="text-xs uppercase text-gray-500 block">Design Philosophy</span>
+                         <span class="font-bold text-white">LIMIT STATE METHOD</span>
+                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Analysis Section -->
+    <section id="analysis" class="py-20 relative">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16 gsap-up">
+                <h2 class="text-4xl font-bold mb-4">STRUCTURAL ANALYSIS</h2>
+                <div class="h-1 w-20 bg-orange-500 mx-auto rounded-full"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Card 1 -->
+                <div class="glass-card p-6 rounded-xl hover:bg-slate-800 transition-all duration-300 transform hover:-translate-y-2 gsap-stagger">
+                    <h3 class="text-xl font-bold text-orange-400 mb-2">01. LOADS</h3>
+                    <p class="text-gray-400 text-sm mb-4">Calculation of Dead Loads, Live Loads, and Wind Loads acting on the frame.</p>
+                    <div class="h-2 w-full bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-orange-500 w-3/4"></div>
+                    </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="glass-card p-6 rounded-xl hover:bg-slate-800 transition-all duration-300 transform hover:-translate-y-2 gsap-stagger">
+                    <h3 class="text-xl font-bold text-blue-400 mb-2">02. MOMENTS</h3>
+                    <p class="text-gray-400 text-sm mb-4">Shear Force and Bending Moment diagrams generated for critical members.</p>
+                    <div class="h-2 w-full bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-blue-500 w-1/2"></div>
+                    </div>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="glass-card p-6 rounded-xl hover:bg-slate-800 transition-all duration-300 transform hover:-translate-y-2 gsap-stagger">
+                    <h3 class="text-xl font-bold text-green-400 mb-2">03. DEFLECTION</h3>
+                    <p class="text-gray-400 text-sm mb-4">Check for deflection limits and crack width control.</p>
+                    <div class="h-2 w-full bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-green-500 w-full"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Raw Code / Table Placeholder -->
+            <div class="mt-12 glass-card rounded-xl p-6 overflow-x-auto gsap-up">
+                <div class="flex items-center justify-between mb-4 border-b border-gray-700 pb-2">
+                    <h4 class="font-mono text-sm text-gray-400">analysis_data.csv</h4>
+                    <div class="flex gap-2">
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                    </div>
+                </div>
+                <table class="w-full text-left text-sm text-gray-300 font-mono">
+                    <thead>
+                        <tr class="text-orange-500">
+                            <th class="p-2">Member ID</th>
+                            <th class="p-2">Load (kN)</th>
+                            <th class="p-2">Moment (kNm)</th>
+                            <th class="p-2">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b border-gray-700/50">
+                            <td class="p-2">B-101</td>
+                            <td class="p-2">15.4</td>
+                            <td class="p-2">45.2</td>
+                            <td class="p-2 text-green-400">SAFE</td>
+                        </tr>
+                        <tr class="border-b border-gray-700/50">
+                            <td class="p-2">C-205</td>
+                            <td class="p-2">120.5</td>
+                            <td class="p-2">12.1</td>
+                            <td class="p-2 text-green-400">SAFE</td>
+                        </tr>
+                        <tr>
+                            <td class="p-2 text-gray-500 italic">...awaiting data</td>
+                            <td class="p-2"></td>
+                            <td class="p-2"></td>
+                            <td class="p-2"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Design Section -->
+    <section id="design" class="py-20 bg-slate-900/50 backdrop-blur-sm">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                <!-- Content -->
+                <div class="gsap-fade-right order-2 lg:order-1">
+                    <h2 class="text-4xl font-bold mb-6 text-white">ELEMENT DESIGN</h2>
+                    <p class="text-gray-300 mb-6 leading-relaxed">
+                        Following the analysis, the reinforcement detailing is carried out. 
+                        Emphasis is placed on ductilty and confinement in beam-column joints.
+                    </p>
+                    
+                    <div class="space-y-4">
+                        <a href="#design-beam" class="group cursor-pointer block">
+                            <h3 class="text-xl font-bold text-white group-hover:text-orange-500 transition-colors">RCC Beam</h3>
+                            <p class="text-gray-400 text-sm h-0 overflow-hidden group-hover:h-auto group-hover:mt-2 transition-all">
+                                Flexural reinforcement designed. Shear reinforcement (stirrups) provided. Deflection control checks applied.
+                            </p>
+                        </a>
+                        <div class="w-full h-px bg-gray-700"></div>
+                        
+                        <a href="#design-column" class="group cursor-pointer block">
+                            <h3 class="text-xl font-bold text-white group-hover:text-orange-500 transition-colors">RCC Column</h3>
+                            <p class="text-gray-400 text-sm h-0 overflow-hidden group-hover:h-auto group-hover:mt-2 transition-all">
+                                Designed using interaction diagrams. Minimum and maximum reinforcement as per IS 456. Lateral ties provided.
+                            </p>
+                        </a>
+                        <div class="w-full h-px bg-gray-700"></div>
+
+                        <a href="#design-slab" class="group cursor-pointer block">
+                            <h3 class="text-xl font-bold text-white group-hover:text-orange-500 transition-colors">RCC Slab</h3>
+                            <p class="text-gray-400 text-sm h-0 overflow-hidden group-hover:h-auto group-hover:mt-2 transition-all">
+                                One-way / Two-way slab. Effective depth calculated based on span. Checks for shear and deflection carried out.
+                            </p>
+                        </a>
+                        <div class="w-full h-px bg-gray-700"></div>
+
+                        <a href="#design-footing" class="group cursor-pointer block">
+                            <h3 class="text-xl font-bold text-white group-hover:text-orange-500 transition-colors">Foundation</h3>
+                            <p class="text-gray-400 text-sm h-0 overflow-hidden group-hover:h-auto group-hover:mt-2 transition-all">
+                                Safe bearing capacity considered. Bending, shear, and punching shear checks performed.
+                            </p>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Interactive Visual Area -->
+                <div class="gsap-fade-left order-1 lg:order-2">
+                     <div class="glass-card rounded-xl p-1 h-full min-h-[300px] flex items-center justify-center relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-blue-500/10 group-hover:opacity-75 transition-opacity"></div>
+                        <div class="text-center z-10">
+                            <span class="block text-6xl mb-2">🏗️</span>
+                            <span class="font-bold text-xl">Design Output</span>
+                            <p class="text-sm text-gray-400">See detailed analysis below</p>
+                        </div>
+                     </div>
+                </div>
+            </div>
+
+            <!-- DETAILED SLAB DESIGN CALCULATION START -->
+            <div id="design-slab" class="mt-16 glass-card rounded-xl p-8 gsap-up">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 border-b border-gray-700 pb-4 gap-4">
+                    <h3 class="text-2xl font-bold text-white">DETAILED DESIGN EXAMPLE: TWO-WAY SLAB</h3>
+                    <span class="px-3 py-1 bg-orange-500 text-xs font-bold rounded text-white tracking-widest">LIVING ROOM PANEL</span>
+                </div>
+
+                <!-- Given Data Grid -->
+                <div class="mb-8 bg-slate-800/50 rounded-lg p-6">
+                    <h4 class="text-orange-400 font-bold mb-4 uppercase tracking-wider text-sm">Given Data</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                        <div><span class="text-gray-400 block text-xs">Room Dimensions</span><span class="text-white font-mono text-base">4.0m x 5.39m</span></div>
+                        <div><span class="text-gray-400 block text-xs">Slab Type</span><span class="text-white text-base">Two-way (Corners Held)</span></div>
+                        <div><span class="text-gray-400 block text-xs">Live Load</span><span class="text-white font-mono text-base">2 kN/m²</span></div>
+                        <div><span class="text-gray-400 block text-xs">Materials</span><span class="text-white font-mono text-base">M20 / Fe415</span></div>
+                    </div>
+                </div>
+                
+                <!-- SLAB VISUALIZER START -->
+                <div id="slab-app" class="flex flex-col md:flex-row w-full min-h-[600px] bg-slate-950 text-slate-200 p-4 gap-4 font-sans border border-slate-700 rounded-xl">
+                    <div class="w-full md:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 max-h-[800px]">
+                        <div class="bg-slate-900 p-6 rounded-xl shadow-lg border border-slate-800">
+                            <div class="flex justify-between items-center mb-2">
+                                <h1 class="text-2xl font-bold text-white">RCC Slab Design</h1>
+                            </div>
+                            <p class="text-sm text-slate-400 mb-6">Residential Living Room (IS 456:2000)</p>
+                            <div class="grid grid-cols-2 gap-2 mb-4">
+                                <button id="btn-plan-slab" class="p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-blue-600 text-white shadow-lg shadow-blue-900/50">
+                                    <i data-lucide="maximize" class="w-4 h-4"></i> Plan View
+                                </button>
+                                <button id="btn-secX-slab" class="p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-slate-800 text-slate-300 hover:bg-slate-700">
+                                    <i data-lucide="layers" class="w-4 h-4"></i> Section X-X
+                                </button>
+                                <button id="btn-secY-slab" class="p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-slate-800 text-slate-300 hover:bg-slate-700">
+                                    <i data-lucide="layers" class="w-4 h-4"></i> Section Y-Y
+                                </button>
+                                <button id="btn-dims-slab" class="p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-emerald-600 text-white shadow-lg shadow-emerald-900/50">
+                                    <i data-lucide="ruler" class="w-4 h-4"></i> Dimensions
+                                </button>
+                            </div>
+                            <div class="bg-slate-800/50 p-4 rounded border border-slate-700 text-sm">
+                                <h3 class="font-bold text-slate-300 mb-2 flex items-center gap-2"><i data-lucide="info" class="w-3.5 h-3.5"></i> Design Summary</h3>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between border-b border-slate-700 pb-1"><span class="text-slate-400">Slab Type</span><span class="font-medium text-emerald-400">Two-Way (Ly/Lx = 1.34)</span></div>
+                                    <div class="flex justify-between border-b border-slate-700 pb-1"><span class="text-slate-400">Dimensions</span><span class="font-mono text-slate-200">4.0m × 5.39m</span></div>
+                                    <div class="flex justify-between border-b border-slate-700 pb-1"><span class="text-slate-400">Depth (D)</span><span class="font-mono text-slate-200">230 mm</span></div>
+                                    <div class="flex justify-between border-b border-slate-700 pb-1"><span class="text-slate-400">Load (Wu)</span><span class="font-mono text-slate-200">13.125 kN/m²</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-slate-900 p-6 rounded-xl shadow-lg border border-slate-800 flex-grow">
+                            <h3 class="font-bold text-white mb-4">Reinforcement Details</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-start gap-3 p-3 bg-red-900/20 rounded-lg border border-red-900/30">
+                                    <div class="mt-1 bg-red-500 w-3 h-3 rounded-full flex-shrink-0 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+                                    <div><p class="text-xs font-bold text-red-400 uppercase tracking-wide">X-Direction</p><p class="text-sm font-semibold text-slate-200">10mm Φ @ 280mm c/c</p></div>
+                                </div>
+                                <div class="flex items-start gap-3 p-3 bg-blue-900/20 rounded-lg border border-blue-900/30">
+                                    <div class="mt-1 bg-blue-500 w-3 h-3 rounded-full flex-shrink-0 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
+                                    <div><p class="text-xs font-bold text-blue-400 uppercase tracking-wide">Y-Direction</p><p class="text-sm font-semibold text-slate-200">10mm Φ @ 300mm c/c</p></div>
+                                </div>
+                                <div class="flex items-start gap-3 p-3 bg-emerald-900/20 rounded-lg border border-emerald-900/30">
+                                    <div class="mt-1 bg-emerald-500 w-3 h-3 rounded-full flex-shrink-0 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+                                    <div><p class="text-xs font-bold text-emerald-400 uppercase tracking-wide">Torsion (Corners)</p><p class="text-sm font-semibold text-slate-200">8mm Φ @ 240mm c/c</p></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="w-full md:w-2/3 bg-slate-900/50 rounded-xl p-4 flex items-center justify-center overflow-auto border border-slate-800 relative">
+                        <div id="scale-label-slab" class="absolute top-4 right-4 bg-slate-800/80 backdrop-blur px-3 py-1 rounded text-xs font-mono text-slate-400 border border-slate-700 pointer-events-none">Scale: 1:100 (Approx)</div>
+                        <div id="svg-container-slab" class="w-full h-full max-w-4xl max-h-[80vh] flex items-center justify-center"></div>
+                    </div>
+                </div>
+                <!-- SLAB VISUALIZER END -->
+
+                <!-- Calculation Steps -->
+                <div class="space-y-8 text-gray-300 mt-8">
+                    <!-- Steps content kept as is -->
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="relative pl-6 border-l-2 border-orange-500">
+                            <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-900 border-2 border-orange-500"></div>
+                            <h5 class="text-white font-bold mb-2">Step 1: Type of Slab</h5>
+                            <p class="font-mono text-sm bg-slate-800 p-3 rounded">Ly/Lx = 5.39/4.0 = <strong class="text-white">1.34 < 2</strong></p>
+                            <p class="text-sm mt-2 text-green-400 flex items-center gap-2">Slab is a Two-Way Slab</p>
+                        </div>
+                        <div class="relative pl-6 border-l-2 border-orange-500">
+                            <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-900 border-2 border-orange-500"></div>
+                            <h5 class="text-white font-bold mb-2">Step 2: Dimensional Fixation</h5>
+                            <div class="font-mono text-sm space-y-1 bg-slate-800 p-3 rounded">
+                                <p>d = Lx/25 = 4/25 = 0.16m ≈ <strong class="text-white">200 mm</strong></p>
+                                <p>Overall Depth (D) = <strong class="text-orange-400">230 mm</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h5 class="text-white font-bold mb-2">Step 3: Effective Span</h5>
+                            <ul class="text-sm space-y-2 font-mono bg-slate-800/50 p-4 rounded">
+                                <li class="flex justify-between"><span>X-direction:</span> <span class="text-white">4.20 m</span></li>
+                                <li class="flex justify-between"><span>Y-direction:</span> <span class="text-white">5.59 m</span></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h5 class="text-white font-bold mb-2">Step 4: Load Calculation</h5>
+                            <ul class="text-sm space-y-2 font-mono bg-slate-800/50 p-4 rounded">
+                                <li class="flex justify-between border-b border-gray-700 pb-1"><span>Total Load (w):</span> <span class="text-gray-400">8.75 kN/m²</span></li>
+                                <li class="flex justify-between pt-1"><span>Design Load (wu):</span> <span class="text-orange-400 font-bold">13.125 kN/m²</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <h5 class="text-white font-bold mb-2">Step 5: Design Moments (IS 456:2000)</h5>
+                        <div class="overflow-x-auto rounded-lg border border-gray-700">
+                            <table class="w-full text-sm text-left font-mono">
+                                <thead class="bg-slate-800 text-gray-400"><tr><th class="p-3">Direction</th><th class="p-3">Moment (kN·m)</th></tr></thead>
+                                <tbody class="divide-y divide-gray-700 bg-slate-900/40">
+                                    <tr class="bg-orange-500/10"><td class="p-3 text-white">Negative BM (X)</td><td class="p-3 font-bold text-orange-400">15.049</td></tr>
+                                    <tr><td class="p-3">Positive BM (X)</td><td class="p-3">11.345</td></tr>
+                                    <tr><td class="p-3">Negative BM (Y)</td><td class="p-3">10.882</td></tr>
+                                    <tr><td class="p-3">Positive BM (Y)</td><td class="p-3">8.103</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="space-y-6 pt-6 border-t border-gray-700">
+                        <div>
+                            <h5 class="text-white font-bold mb-2">Step 6: Check for Depth</h5>
+                            <div class="bg-slate-800/50 p-4 rounded font-mono text-sm space-y-2">
+                                <p>Mu,lim = 110 kN·m > Mu (15.049)</p>
+                                <p class="text-green-400">Slab is safe in bending.</p>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 class="text-white font-bold mb-2">Step 7: Steel Reinforcement</h5>
+                            <div class="bg-slate-800/50 p-4 rounded font-mono text-sm space-y-2">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                                    <div class="border-l-2 border-orange-500 pl-3">
+                                        <span class="text-gray-400 block text-xs">X-Direction</span>
+                                        <span class="text-white">10 mm Φ @ 280 mm c/c</span>
+                                    </div>
+                                    <div class="border-l-2 border-orange-500 pl-3">
+                                        <span class="text-gray-400 block text-xs">Y-Direction</span>
+                                        <span class="text-white">10 mm Φ @ 300 mm c/c</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div><h5 class="text-white font-bold mb-2">Step 9: Torsion</h5><div class="bg-slate-800/50 p-4 rounded font-mono text-sm text-orange-400">Provide 8 mm Φ @ 240 mm c/c at corners.</div></div>
+                            <div><h5 class="text-white font-bold mb-2">Step 10: Edge Strip</h5><div class="bg-slate-800/50 p-4 rounded font-mono text-sm text-orange-400">Provide 8 mm Φ @ 180 mm c/c.</div></div>
+                        </div>
+                        <div>
+                            <h5 class="text-white font-bold mb-2">Step 11: Deflection Check</h5>
+                            <div class="bg-slate-800/50 p-4 rounded font-mono text-sm flex justify-between items-center">
+                                <div><p>L/d provided = 21</p><p>L/d permissible = 52</p></div>
+                                <div class="text-green-400 font-bold border border-green-500 px-3 py-1 rounded">SAFE</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- DETAILED SLAB DESIGN CALCULATION END -->
+
+            <!-- DETAILED BEAM DESIGN CALCULATION START -->
+            <div id="design-beam" class="mt-8 glass-card rounded-xl p-8 gsap-up">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 border-b border-gray-700 pb-4 gap-4">
+                    <h3 class="text-2xl font-bold text-white">DETAILED DESIGN EXAMPLE: RCC BEAM</h3>
+                    <span class="px-3 py-1 bg-orange-500 text-xs font-bold rounded text-white tracking-widest">RESIDENTIAL BUILDING</span>
+                </div>
+
+                <!-- Given Data Grid -->
+                <div class="mb-8 bg-slate-800/50 rounded-lg p-6">
+                    <h4 class="text-orange-400 font-bold mb-4 uppercase tracking-wider text-sm">Given Data</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                        <div><span class="text-gray-400 block text-xs">Slab Design Load (Wu)</span><span class="text-white font-mono text-base">13.125 kN/m²</span></div>
+                        <div><span class="text-gray-400 block text-xs">Room Size</span><span class="text-white font-mono text-base">4.0m x 5.39m</span></div>
+                        <div><span class="text-gray-400 block text-xs">Concrete Grade</span><span class="text-white font-mono text-base">M20</span></div>
+                        <div><span class="text-gray-400 block text-xs">Steel Grade</span><span class="text-white font-mono text-base">Fe 415</span></div>
+                    </div>
+                </div>
+                
+                <!-- BEAM VISUALIZER START -->
+                <div id="beam-app" class="flex flex-col md:flex-row w-full min-h-[600px] bg-slate-950 text-slate-200 p-4 gap-4 font-sans border border-slate-700 rounded-xl">
+                    <div class="w-full md:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 max-h-[800px]">
+                        <div class="bg-slate-900 p-6 rounded-xl shadow-lg border border-slate-800">
+                            <div class="flex justify-between items-center mb-2"><h1 class="text-2xl font-bold text-white">RCC Beam Design</h1></div>
+                            <p class="text-sm text-slate-400 mb-6">Residential Building Beam (IS 456:2000)</p>
+                            <div class="grid grid-cols-2 gap-2 mb-4">
+                                <button id="btn-elev-beam" class="p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-blue-600 text-white shadow-lg shadow-blue-900/50"><i data-lucide="rectangle-horizontal" class="w-4 h-4"></i> Elevation</button>
+                                <button id="btn-sec-beam" class="p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-slate-800 text-slate-300 hover:bg-slate-700"><i data-lucide="rectangle-vertical" class="w-4 h-4"></i> Cross Section</button>
+                                <button id="btn-dims-beam" class="p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-emerald-600 text-white shadow-lg shadow-emerald-900/50 col-span-2"><i data-lucide="ruler" class="w-4 h-4"></i> Toggle Dimensions</button>
+                            </div>
+                            <div class="bg-slate-800/50 p-4 rounded border border-slate-700 text-sm">
+                                <h3 class="font-bold text-slate-300 mb-2 flex items-center gap-2"><i data-lucide="info" class="w-3.5 h-3.5"></i> Design Summary</h3>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between border-b border-slate-700 pb-1"><span class="text-slate-400">Beam Size</span><span class="font-mono text-slate-200">230mm × 500mm</span></div>
+                                    <div class="flex justify-between border-b border-slate-700 pb-1"><span class="text-slate-400">Effective Span</span><span class="font-mono text-slate-200">5.62 m</span></div>
+                                    <div class="flex justify-between border-b border-slate-700 pb-1"><span class="text-slate-400">Design Moment</span><span class="font-mono text-slate-200">101.39 kNm</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-slate-900 p-6 rounded-xl shadow-lg border border-slate-800 flex-grow">
+                            <h3 class="font-bold text-white mb-4">Reinforcement Details</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-start gap-3 p-3 bg-red-900/20 rounded-lg border border-red-900/30">
+                                    <div class="mt-1 bg-red-500 w-3 h-3 rounded-full flex-shrink-0 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+                                    <div><p class="text-xs font-bold text-red-400 uppercase tracking-wide">Tension Steel</p><p class="text-sm font-semibold text-slate-200">4 Nos - 16mm Φ</p></div>
+                                </div>
+                                <div class="flex items-start gap-3 p-3 bg-green-900/20 rounded-lg border border-green-900/30">
+                                    <div class="mt-1 bg-green-500 w-3 h-3 rounded-full flex-shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                                    <div><p class="text-xs font-bold text-green-400 uppercase tracking-wide">Shear Reinforcement</p><p class="text-sm font-semibold text-slate-200">8mm Φ Stirrups @ 300mm c/c</p></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="w-full md:w-2/3 bg-slate-900/50 rounded-xl p-4 flex items-center justify-center overflow-auto border border-slate-800 relative min-h-[400px]">
+                        <div id="scale-label-beam" class="absolute top-4 right-4 bg-slate-800/80 backdrop-blur px-3 py-1 rounded text-xs font-mono text-slate-400 border border-slate-700 pointer-events-none">Scale: 1:100 (Approx)</div>
+                        <div id="svg-container-beam" class="w-full h-full max-w-4xl max-h-[80vh] flex items-center justify-center"></div>
+                    </div>
+                </div>
+                <!-- BEAM VISUALIZER END -->
+
+                <!-- Calculation Steps -->
+                <div class="space-y-8 text-gray-300 mt-8">
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="relative pl-6 border-l-2 border-orange-500">
+                             <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-900 border-2 border-orange-500"></div>
+                             <h5 class="text-white font-bold mb-2">Step 1: Dimension Fixation</h5>
+                             <div class="font-mono text-sm bg-slate-800 p-3 rounded space-y-1"><p>Width (b) = 230 mm</p><p>Depth (D) ≈ 500 mm</p><p>Effective Depth (d) = 460 mm</p></div>
+                        </div>
+                        <div class="relative pl-6 border-l-2 border-orange-500">
+                             <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-900 border-2 border-orange-500"></div>
+                             <h5 class="text-white font-bold mb-2">Step 2: Effective Span</h5>
+                             <div class="font-mono text-sm bg-slate-800 p-3 rounded"><p>Effective Span (L) = <strong class="text-orange-400">5.62 m</strong></p></div>
+                        </div>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div><h5 class="text-white font-bold mb-2">Step 4: Design Forces</h5><div class="bg-slate-800/50 p-4 rounded font-mono text-sm space-y-2"><p>Moment (Mu) = <span class="text-orange-400 font-bold">101.39 kN·m</span></p><p>Shear (Vu) = <span class="text-orange-400 font-bold">72.164 kN</span></p></div></div>
+                        <div><h5 class="text-white font-bold mb-2">Step 6: Flexural Steel</h5><div class="bg-slate-800/50 p-4 rounded font-mono text-sm space-y-2"><p>Ast provided = 804 mm²</p><p class="text-white font-bold">4 Nos. - 16mm Φ</p></div></div>
+                    </div>
+                     <div class="grid md:grid-cols-2 gap-8">
+                        <div><h5 class="text-white font-bold mb-2">Step 7: Shear Reinforcement</h5><div class="bg-slate-800/50 p-4 rounded font-mono text-sm"><p class="text-white font-bold border border-orange-500 p-2 text-center rounded">8mm 2-LG Stirrups @ 300mm c/c</p></div></div>
+                        <div><h5 class="text-white font-bold mb-2">Step 8: Deflection Check</h5><div class="bg-slate-800/50 p-4 rounded font-mono text-sm"><p class="text-green-400 font-bold text-center">SAFE IN DEFLECTION</p></div></div>
+                     </div>
+                </div>
+            </div>
+            <!-- DETAILED BEAM DESIGN CALCULATION END -->
+
+            <!-- DETAILED COLUMN DESIGN CALCULATION START -->
+            <div id="design-column" class="mt-8 glass-card rounded-xl p-8 gsap-up">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 border-b border-gray-700 pb-4 gap-4">
+                    <h3 class="text-2xl font-bold text-white">DETAILED DESIGN EXAMPLE: RCC COLUMN</h3>
+                    <span class="px-3 py-1 bg-orange-500 text-xs font-bold rounded text-white tracking-widest">AXIALLY LOADED</span>
+                </div>
+
+                <!-- Input & Load Data Grid -->
+                <div class="mb-8 bg-slate-800/50 rounded-lg p-6">
+                    <h4 class="text-orange-400 font-bold mb-4 uppercase tracking-wider text-sm">Input & Load Data</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                        <div><span class="text-gray-400 block text-xs">Unsupported Length (L)</span><span class="text-white font-mono text-base">3.4 m</span></div>
+                        <div><span class="text-gray-400 block text-xs">Axial Load (P)</span><span class="text-white font-mono text-base">1500 kN</span></div>
+                        <div><span class="text-gray-400 block text-xs">Factored Load (Pu)</span><span class="text-orange-400 font-mono text-base font-bold">2250 kN</span></div>
+                        <div><span class="text-gray-400 block text-xs">Concrete Grade</span><span class="text-white font-mono text-base">M25</span></div>
+                    </div>
+                </div>
+                
+                <!-- COLUMN VISUALIZER START -->
+                <div id="column-app" class="flex flex-col md:flex-row w-full min-h-[600px] bg-slate-950 text-slate-200 p-4 gap-4 font-sans border border-slate-700 rounded-xl">
+                    <div class="w-full md:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 max-h-[800px]">
+                        <div class="bg-slate-900 p-6 rounded-xl shadow-lg border border-slate-800">
+                            <div class="flex justify-between items-center mb-2"><h1 class="text-2xl font-bold text-white">RCC Column Design</h1></div>
+                            <p class="text-sm text-slate-400 mb-6">Short Axially Loaded Column (IS 456:2000)</p>
+                            <div class="grid grid-cols-2 gap-2 mb-4">
+                                <button id="btn-elev-col" class="p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-blue-600 text-white shadow-lg shadow-blue-900/50"><i data-lucide="arrow-up-down" class="w-4 h-4"></i> Elevation</button>
+                                <button id="btn-sec-col" class="p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-slate-800 text-slate-300 hover:bg-slate-700"><i data-lucide="rectangle-vertical" class="w-4 h-4"></i> Cross Section</button>
+                                <button id="btn-dims-col" class="p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-emerald-600 text-white shadow-lg shadow-emerald-900/50 col-span-2"><i data-lucide="ruler" class="w-4 h-4"></i> Toggle Dimensions</button>
+                            </div>
+                            <div class="bg-slate-800/50 p-4 rounded border border-slate-700 text-sm">
+                                <h3 class="font-bold text-slate-300 mb-2 flex items-center gap-2"><i data-lucide="info" class="w-3.5 h-3.5"></i> Design Summary</h3>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between border-b border-slate-700 pb-1"><span class="text-slate-400">Column Size</span><span class="font-mono text-slate-200">350mm × 450mm</span></div>
+                                    <div class="flex justify-between border-b border-slate-700 pb-1"><span class="text-slate-400">Slenderness Ratio</span><span class="font-mono text-slate-200">5.44 (Short)</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-slate-900 p-6 rounded-xl shadow-lg border border-slate-800 flex-grow">
+                            <h3 class="font-bold text-white mb-4">Reinforcement Details</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-start gap-3 p-3 bg-red-900/20 rounded-lg border border-red-900/30">
+                                    <div class="mt-1 bg-red-500 w-3 h-3 rounded-full flex-shrink-0 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+                                    <div><p class="text-xs font-bold text-red-400 uppercase tracking-wide">Longitudinal Steel</p><p class="text-sm font-semibold text-slate-200">6 Nos - 25mm Φ</p></div>
+                                </div>
+                                <div class="flex items-start gap-3 p-3 bg-green-900/20 rounded-lg border border-green-900/30">
+                                    <div class="mt-1 bg-green-500 w-3 h-3 rounded-full flex-shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                                    <div><p class="text-xs font-bold text-green-400 uppercase tracking-wide">Lateral Ties</p><p class="text-sm font-semibold text-slate-200">8mm Φ @ 300mm c/c</p></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="w-full md:w-2/3 bg-slate-900/50 rounded-xl p-4 flex items-center justify-center overflow-auto border border-slate-800 relative min-h-[400px]">
+                        <div id="scale-label-col" class="absolute top-4 right-4 bg-slate-800/80 backdrop-blur px-3 py-1 rounded text-xs font-mono text-slate-400 border border-slate-700 pointer-events-none">Scale: NTS</div>
+                        <div id="svg-container-col" class="w-full h-full max-w-4xl max-h-[80vh] flex items-center justify-center"></div>
+                    </div>
+                </div>
+                <!-- COLUMN VISUALIZER END -->
+
+                <!-- Calculation Steps -->
+                <div class="space-y-8 text-gray-300 mt-8">
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="relative pl-6 border-l-2 border-orange-500">
+                             <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-900 border-2 border-orange-500"></div>
+                             <h5 class="text-white font-bold mb-2">Step 1: Column Size</h5>
+                             <div class="font-mono text-sm bg-slate-800 p-3 rounded space-y-1"><p>Adopted Size:</p><p class="text-white font-bold text-lg border border-orange-500 inline-block px-2 mt-1">350 mm × 450 mm</p></div>
+                        </div>
+                        <div class="relative pl-6 border-l-2 border-orange-500">
+                             <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-900 border-2 border-orange-500"></div>
+                             <h5 class="text-white font-bold mb-2">Step 2: Slenderness Check</h5>
+                             <div class="bg-slate-800/50 p-4 rounded font-mono text-sm space-y-2"><p>Ratio = 6.04 < 12</p><p class="text-green-400">Short Column</p></div>
+                        </div>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-8">
+                         <div><h5 class="text-white font-bold mb-2">Step 4: Reinforcement</h5><div class="bg-slate-800/50 p-4 rounded font-mono text-sm space-y-2"><p>Provide: <span class="text-white font-bold">6 Nos. - 25mm Φ</span></p></div></div>
+                         <div><h5 class="text-white font-bold mb-2">Step 5: Lateral Ties</h5><div class="bg-slate-800/50 p-4 rounded font-mono text-sm"><p class="text-white font-bold border border-orange-500 p-2 text-center rounded">8mm Ties @ 300mm c/c</p></div></div>
+                    </div>
+                </div>
+            </div>
+            <!-- DETAILED COLUMN DESIGN CALCULATION END -->
+
+            <!-- DETAILED FOOTING DESIGN CALCULATION START -->
+            <div id="design-footing" class="mt-8 glass-card rounded-xl p-8 gsap-up">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 border-b border-gray-700 pb-4 gap-4">
+                    <h3 class="text-2xl font-bold text-white">DETAILED DESIGN EXAMPLE: ISOLATED FOOTING</h3>
+                    <span class="px-3 py-1 bg-orange-500 text-xs font-bold rounded text-white tracking-widest">FOUNDATION</span>
+                </div>
+
+                <!-- Given Data Grid -->
+                <div class="mb-8 bg-slate-800/50 rounded-lg p-6">
+                    <h4 class="text-orange-400 font-bold mb-4 uppercase tracking-wider text-sm">Given Data</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                        <div><span class="text-gray-400 block text-xs">Axial Load</span><span class="text-white font-mono text-base">120 kN</span></div>
+                        <div><span class="text-gray-400 block text-xs">SBC of Soil</span><span class="text-white font-mono text-base">150 kN/m²</span></div>
+                        <div><span class="text-gray-400 block text-xs">Footing Size</span><span class="text-white font-mono text-base">1.3 x 1.3 m</span></div>
+                        <div><span class="text-gray-400 block text-xs">Eff. Depth</span><span class="text-white font-mono text-base">250 mm</span></div>
+                    </div>
+                </div>
+                
+                <!-- FOOTING VISUALIZER START -->
+                <div id="footing-app" class="flex flex-col md:flex-row w-full min-h-[600px] bg-slate-950 text-slate-200 p-4 gap-4 font-sans border border-slate-700 rounded-xl">
+                    <div class="w-full md:w-1/3 flex flex-col gap-4 overflow-y-auto pr-2 max-h-[800px]">
+                        <div class="bg-slate-900 p-6 rounded-xl shadow-lg border border-slate-800">
+                            <div class="flex justify-between items-center mb-2"><h1 class="text-2xl font-bold text-white">RCC Footing Design</h1></div>
+                            <p class="text-sm text-slate-400 mb-6">Isolated Pad Footing (IS 456:2000)</p>
+                            <div class="grid grid-cols-2 gap-2 mb-4">
+                                <button id="btn-plan-foot" class="p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-blue-600 text-white shadow-lg shadow-blue-900/50"><i data-lucide="maximize" class="w-4 h-4"></i> Plan View</button>
+                                <button id="btn-sec-foot" class="p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-slate-800 text-slate-300 hover:bg-slate-700"><i data-lucide="layers" class="w-4 h-4"></i> Section View</button>
+                                <button id="btn-dims-foot" class="p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-emerald-600 text-white shadow-lg shadow-emerald-900/50 col-span-2"><i data-lucide="ruler" class="w-4 h-4"></i> Toggle Dimensions</button>
+                            </div>
+                            <div class="bg-slate-800/50 p-4 rounded border border-slate-700 text-sm">
+                                <h3 class="font-bold text-slate-300 mb-2 flex items-center gap-2"><i data-lucide="info" class="w-3.5 h-3.5"></i> Design Summary</h3>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between border-b border-slate-700 pb-1"><span class="text-slate-400">Footing Size</span><span class="font-mono text-slate-200">1.3m × 1.3m</span></div>
+                                    <div class="flex justify-between border-b border-slate-700 pb-1"><span class="text-slate-400">Total Load</span><span class="font-mono text-emerald-400">132 kN</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-slate-900 p-6 rounded-xl shadow-lg border border-slate-800 flex-grow">
+                            <h3 class="font-bold text-white mb-4">Reinforcement Details</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-start gap-3 p-3 bg-red-900/20 rounded-lg border border-red-900/30">
+                                    <div class="mt-1 bg-red-500 w-3 h-3 rounded-full flex-shrink-0 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+                                    <div><p class="text-xs font-bold text-red-400 uppercase tracking-wide">Bottom Mesh</p><p class="text-sm font-semibold text-slate-200">12mm Φ @ 200mm c/c</p></div>
+                                </div>
+                                <div class="flex items-start gap-3 p-3 bg-green-900/20 rounded-lg border border-green-900/30">
+                                    <div class="mt-1 bg-green-500 w-3 h-3 rounded-full flex-shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                                    <div><p class="text-xs font-bold text-green-400 uppercase tracking-wide">Checks</p><p class="text-xs text-green-400 font-bold">All Safe</p></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="w-full md:w-2/3 bg-slate-900/50 rounded-xl p-4 flex items-center justify-center overflow-auto border border-slate-800 relative min-h-[400px]">
+                        <div id="scale-label-foot" class="absolute top-4 right-4 bg-slate-800/80 backdrop-blur px-3 py-1 rounded text-xs font-mono text-slate-400 border border-slate-700 pointer-events-none">Scale: 1:20 (Approx)</div>
+                        <div id="svg-container-foot" class="w-full h-full max-w-4xl max-h-[80vh] flex items-center justify-center"></div>
+                    </div>
+                </div>
+                <!-- FOOTING VISUALIZER END -->
+
+                <!-- Calculation Steps -->
+                <div class="space-y-8 text-gray-300 mt-8">
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="relative pl-6 border-l-2 border-orange-500">
+                             <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-900 border-2 border-orange-500"></div>
+                             <h5 class="text-white font-bold mb-2">Step 2: Soil Pressure</h5>
+                             <div class="bg-slate-800/50 p-4 rounded font-mono text-sm space-y-2"><p>Factored (qu) = <span class="text-orange-400 font-bold">117.16 kN/m²</span></p></div>
+                        </div>
+                        <div class="relative pl-6 border-l-2 border-orange-500">
+                             <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-900 border-2 border-orange-500"></div>
+                             <h5 class="text-white font-bold mb-2">Step 4: One-Way Shear</h5>
+                             <div class="bg-slate-800/50 p-4 rounded font-mono text-sm"><p class="text-green-400 text-xs font-bold mt-2 text-center border border-green-500 rounded p-1">τv < τc → SAFE</p></div>
+                        </div>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-8">
+                         <div><h5 class="text-white font-bold mb-2">Step 5: Punching Shear</h5><div class="bg-slate-800/50 p-4 rounded font-mono text-sm"><p class="text-green-400 text-xs font-bold mt-2 text-center border border-green-500 rounded p-1">SAFE IN PUNCHING</p></div></div>
+                         <div><h5 class="text-white font-bold mb-2">Step 7: Reinforcement</h5><div class="bg-slate-800/50 p-4 rounded font-mono text-sm"><p class="text-white font-bold">12mm Φ @ 200mm c/c</p></div></div>
+                    </div>
+                </div>
+            </div>
+            <!-- DETAILED FOOTING DESIGN CALCULATION END -->
+
+        </div>
+    </section>
+
+    <!-- Site Visit Section (Restored) -->
+    <section id="site-visit" class="py-20 relative border-t border-slate-800">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold mb-2 text-white text-center gsap-up">SITE VISIT REPORT</h2>
+            <p class="text-orange-500 text-center mb-12 uppercase tracking-widest gsap-up">Flat Slab Structural System with Drop Panels</p>
+
+            <!-- Intro & Purpose -->
+            <div class="grid md:grid-cols-2 gap-8 mb-12">
+                <div class="glass-card p-6 rounded-xl gsap-up">
+                    <h3 class="text-xl font-bold text-white mb-4">1. INTRODUCTION</h3>
+                    <p class="text-gray-300 leading-relaxed text-sm">
+                        A detailed site inspection was carried out at a multi-storey RCC building constructed using a Flat Slab Structural System with Column Drop Panels. 
+                        The visit aimed to understand reinforcement layout, slab–column junction detailing, shuttering practices, load transfer mechanism, and construction sequencing.
+                        Flat slabs are increasingly used in India due to architectural flexibility, faster construction, and better accommodation of services.
+                    </p>
+                </div>
+                <div class="glass-card p-6 rounded-xl gsap-up">
+                    <h3 class="text-xl font-bold text-white mb-4">2. PURPOSE OF VISIT</h3>
+                    <ul class="space-y-2 text-gray-300 text-sm">
+                        <li class="flex gap-2"><span class="text-orange-500">▸</span> Study reinforcement arrangement in flat slabs</li>
+                        <li class="flex gap-2"><span class="text-orange-500">▸</span> Understand drop panel detailing & punching shear</li>
+                        <li class="flex gap-2"><span class="text-orange-500">▸</span> Observe formwork and shuttering systems</li>
+                        <li class="flex gap-2"><span class="text-orange-500">▸</span> Review construction practices & safety</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Project Details & Overview -->
+            <div class="grid lg:grid-cols-3 gap-8 mb-12">
+                <!-- Project Details Table -->
+                <div class="glass-card p-6 rounded-xl lg:col-span-1 gsap-up">
+                    <h3 class="text-xl font-bold text-white mb-4">3. PROJECT DETAILS</h3>
+                    <div class="text-sm space-y-3">
+                        <div class="flex justify-between border-b border-gray-700 pb-2">
+                            <span class="text-gray-400">System</span>
+                            <span class="text-white text-right">Flat slab + Drop panels</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-700 pb-2">
+                            <span class="text-gray-400">Floor</span>
+                            <span class="text-white text-right">Slab without beams</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-700 pb-2">
+                            <span class="text-gray-400">Shuttering</span>
+                            <span class="text-white text-right">Waterproof plywood</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-700 pb-2">
+                            <span class="text-gray-400">Steel</span>
+                            <span class="text-white text-right">HYSD Fe-500</span>
+                        </div>
+                        <div class="flex justify-between border-b border-gray-700 pb-2">
+                            <span class="text-gray-400">Slab Thk</span>
+                            <span class="text-white text-right">150–180 mm</span>
+                        </div>
+                        <div class="flex justify-between pt-1">
+                            <span class="text-gray-400">Drop Thk</span>
+                            <span class="text-white text-right">225–300 mm</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flat Slab & Drop Panels Info -->
+                <div class="glass-card p-6 rounded-xl lg:col-span-2 gsap-up flex flex-col justify-between">
+                     <div class="mb-6">
+                        <h3 class="text-xl font-bold text-orange-500 mb-2">4. FLAT SLAB SYSTEM</h3>
+                        <p class="text-gray-300 text-sm mb-4">
+                            A structural arrangement where the slab rests directly on columns without beams. Loads transfer directly from slab → column → foundation.
+                        </p>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="bg-slate-800/50 p-3 rounded">
+                                <span class="text-green-400 font-bold text-xs block mb-1">ADVANTAGES</span>
+                                <ul class="text-xs text-gray-400 list-disc list-inside">
+                                    <li>Increased clear floor height</li>
+                                    <li>Easy routing of MEP services</li>
+                                    <li>Faster construction</li>
+                                </ul>
+                            </div>
+                            <div class="bg-slate-800/50 p-3 rounded">
+                                <span class="text-red-400 font-bold text-xs block mb-1">LIMITATIONS</span>
+                                <ul class="text-xs text-gray-400 list-disc list-inside">
+                                    <li>Punching shear risk</li>
+                                    <li>Requires precise detailing</li>
+                                </ul>
+                            </div>
+                        </div>
+                     </div>
+                     <div>
+                        <h3 class="text-xl font-bold text-orange-500 mb-2">5. DROP PANELS</h3>
+                        <p class="text-gray-300 text-sm">
+                            <strong>Importance:</strong> Increases effective depth, reduces shear stress, and improves negative moment capacity at supports.
+                            <br>
+                            <span class="text-xs text-gray-400 block mt-2">IS 456 Provisions: Drop width ≥ 1/6 span | Drop thickness ≥ 1.25 × slab thickness</span>
+                        </p>
+                     </div>
+                </div>
+            </div>
+
+            <!-- Field Observations Grid -->
+            <h3 class="text-2xl font-bold text-white mb-6 pl-4 border-l-4 border-blue-500 gsap-up">FIELD OBSERVATIONS</h3>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                <!-- Reinforcement -->
+                <div class="glass-card p-5 rounded-xl hover:bg-slate-800 transition-colors gsap-up">
+                    <div class="text-3xl mb-3">🏗️</div>
+                    <h4 class="font-bold text-white mb-2">Reinforcement</h4>
+                    <ul class="text-sm text-gray-400 list-disc list-inside space-y-1">
+                        <li>Bottom mesh: 150–200 mm</li>
+                        <li>Dense top mesh near columns</li>
+                        <li>Chairs for effective depth</li>
+                        <li>15–20 mm cover blocks</li>
+                    </ul>
+                </div>
+                <!-- Formwork -->
+                <div class="glass-card p-5 rounded-xl hover:bg-slate-800 transition-colors gsap-up">
+                    <div class="text-3xl mb-3">🪵</div>
+                    <h4 class="font-bold text-white mb-2">Formwork</h4>
+                    <ul class="text-sm text-gray-400 list-disc list-inside space-y-1">
+                        <li>Waterproof plywood sheets</li>
+                        <li>Steel/timber props</li>
+                        <li>Drop-form boxes at columns</li>
+                        <li>Aligned per IS 14687</li>
+                    </ul>
+                </div>
+                <!-- Concreting -->
+                <div class="glass-card p-5 rounded-xl hover:bg-slate-800 transition-colors gsap-up">
+                    <div class="text-3xl mb-3">🚛</div>
+                    <h4 class="font-bold text-white mb-2">Concreting & QC</h4>
+                    <ul class="text-sm text-gray-400 list-disc list-inside space-y-1">
+                        <li>Needle vibration used</li>
+                        <li>Pumped and screeded</li>
+                        <li>Curing: Ponding (7 days min)</li>
+                        <li>Slump & Cube tests conducted</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Conclusion -->
+            <div class="glass-card p-8 rounded-xl text-center gsap-up">
+                <h3 class="text-xl font-bold text-white mb-4">SITE VISIT CONCLUSION</h3>
+                <p class="text-gray-300 max-w-3xl mx-auto mb-6">
+                    The site visit enhanced understanding of flat slab construction, highlighting the importance of detailing, code compliance, safety, and constructability. 
+                    Proper execution of reinforcement, drop panels, and formwork ensures structural safety, durability, and performance.
+                </p>
+                <div class="inline-flex gap-4 text-xs font-mono text-orange-500 border border-orange-500/30 px-4 py-2 rounded-full bg-orange-500/10">
+                    <span>IS 456:2000</span>
+                    <span>•</span>
+                    <span>IS 875</span>
+                    <span>•</span>
+                    <span>SP-34</span>
+                    <span>•</span>
+                    <span>IS 1786</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Our Team Section (Restored) -->
+    <section id="our-team" class="py-20 bg-slate-900/50 backdrop-blur-sm border-t border-slate-800">
+        <div class="container mx-auto px-6">
+            <h2 class="text-4xl font-bold mb-10 text-white text-center gsap-up">OUR TEAM</h2>
+            
+            <!-- Faculty Coordinator Section -->
+            <div class="flex justify-center mb-14 gsap-up">
+                <div class="glass-card p-8 rounded-xl border-t-4 border-orange-500 text-center max-w-md w-full relative overflow-hidden group transform hover:-translate-y-1 transition-all duration-300">
+                    <div class="absolute inset-0 bg-gradient-to-b from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="relative z-10">
+                        <div class="w-24 h-24 mx-auto rounded-full bg-slate-800 border-2 border-orange-500 flex items-center justify-center text-2xl font-bold text-white mb-5 shadow-[0_0_20px_rgba(249,115,22,0.3)]">
+                            DR
+                        </div>
+                        <h3 class="text-3xl font-bold text-white mb-2">Dr. ROOPA AK</h3>
+                        <p class="text-orange-400 font-mono text-sm tracking-widest mb-6">FACULTY COORDINATOR</p>
+                        <a href="https://www.linkedin.com/in/dr-roopa-ak-a52393135/" target="_blank" class="inline-flex items-center gap-2 text-white bg-[#0077b5] hover:bg-[#006396] px-6 py-2.5 rounded-lg text-sm font-bold transition-all transform hover:scale-105 shadow-lg">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                            Connect on LinkedIn
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Member 1 -->
+                <div class="glass-card p-6 rounded-xl hover:border-orange-500 transition-colors group gsap-up">
+                    <div class="w-16 h-16 rounded-full bg-slate-800 mb-4 flex items-center justify-center text-2xl border border-gray-700 group-hover:border-orange-500 transition-colors">MD</div>
+                    <h3 class="text-xl font-bold text-white">MAYUR DAMAMGAR</h3>
+                    <div class="space-y-1 mt-2 text-sm">
+                        <p class="text-gray-400 font-mono">USN: 01FE23BCV054</p>
+                        <p class="text-gray-400 font-mono">Roll No: 133</p>
+                        <a href="mailto:mayurdamamgar@gmail.com" class="text-orange-500 hover:text-white block mt-2 text-xs truncate">mayurdamamgar@gmail.com</a>
+                        <a href="https://www.linkedin.com/in/mayur-damamgar-518208202/" target="_blank" class="text-blue-400 hover:text-white block mt-1 text-xs">LinkedIn Profile ↗</a>
+                    </div>
+                </div>
+
+                <!-- Member 2 -->
+                <div class="glass-card p-6 rounded-xl hover:border-orange-500 transition-colors group gsap-up">
+                    <div class="w-16 h-16 rounded-full bg-slate-800 mb-4 flex items-center justify-center text-2xl border border-gray-700 group-hover:border-orange-500 transition-colors">AU</div>
+                    <h3 class="text-xl font-bold text-white">ARYAN A. UPPIN</h3>
+                    <div class="space-y-1 mt-2 text-sm">
+                        <p class="text-gray-400 font-mono">USN: 01FE23BCV051</p>
+                        <p class="text-gray-400 font-mono">Roll No: 131</p>
+                        <a href="mailto:01FE23BCV051@kletech.ac.in" class="text-orange-500 hover:text-white block mt-2 text-xs truncate">01FE23BCV051@kletech.ac.in</a>
+                    </div>
+                </div>
+
+                <!-- Member 3 -->
+                <div class="glass-card p-6 rounded-xl hover:border-orange-500 transition-colors group gsap-up">
+                    <div class="w-16 h-16 rounded-full bg-slate-800 mb-4 flex items-center justify-center text-2xl border border-gray-700 group-hover:border-orange-500 transition-colors">SN</div>
+                    <h3 class="text-xl font-bold text-white">SHIVANI P. NAIK</h3>
+                    <div class="space-y-1 mt-2 text-sm">
+                        <p class="text-gray-400 font-mono">USN: 01FE23BCV055</p>
+                        <p class="text-gray-400 font-mono">Roll No: 134</p>
+                        <a href="mailto:01FE23BCV055@kletech.ac.in" class="text-orange-500 hover:text-white block mt-2 text-xs truncate">01FE23BCV055@kletech.ac.in</a>
+                    </div>
+                </div>
+
+                <!-- Member 4 -->
+                <div class="glass-card p-6 rounded-xl hover:border-orange-500 transition-colors group gsap-up">
+                    <div class="w-16 h-16 rounded-full bg-slate-800 mb-4 flex items-center justify-center text-2xl border border-gray-700 group-hover:border-orange-500 transition-colors">SB</div>
+                    <h3 class="text-xl font-bold text-white">SHANTESH B. BIRADAR</h3>
+                    <div class="space-y-1 mt-2 text-sm">
+                        <p class="text-gray-400 font-mono">USN: 01FE23BCV053</p>
+                        <p class="text-gray-400 font-mono">Roll No: 132</p>
+                        <a href="mailto:01FE23BCV053@kletech.ac.in" class="text-orange-500 hover:text-white block mt-2 text-xs truncate">01FE23BCV053@kletech.ac.in</a>
+                    </div>
+                </div>
+
+                <!-- Member 5 -->
+                <div class="glass-card p-6 rounded-xl hover:border-orange-500 transition-colors group gsap-up">
+                    <div class="w-16 h-16 rounded-full bg-slate-800 mb-4 flex items-center justify-center text-2xl border border-gray-700 group-hover:border-orange-500 transition-colors">SP</div>
+                    <h3 class="text-xl font-bold text-white">SOUBHAGYA R. PARADDI</h3>
+                    <div class="space-y-1 mt-2 text-sm">
+                        <p class="text-gray-400 font-mono">USN: 01FE23BCV057</p>
+                        <p class="text-gray-400 font-mono">Roll No: 135</p>
+                        <a href="mailto:01FE23BCV057@kletech.ac.in" class="text-orange-500 hover:text-white block mt-2 text-xs truncate">01FE23BCV057@kletech.ac.in</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="footer" class="py-12 border-t border-slate-800 bg-slate-900">
+        <div class="container mx-auto px-6 text-center">
+            <h2 class="text-2xl font-bold mb-8 text-white">PROJECT CONCLUSION</h2>
+            <p class="text-gray-400 max-w-2xl mx-auto mb-8">
+                The course project provided practical exposure to the design of structural members for residential buildings. 
+                Proper application of IS codes ensures structural safety, economy, and serviceability.
+            </p>
+            <div class="flex flex-wrap justify-center gap-4 text-sm font-mono text-gray-500">
+                <span>IS 456:2000</span>
+                <span>•</span>
+                <span>IS 875 (Part 1 & 2)</span>
+                <span>•</span>
+                <span>IS 1786</span>
+                <span>•</span>
+                <span>SP 34</span>
+            </div>
+            <div class="mt-8 text-xs text-gray-600">
+                &copy; 2024 RCC Design Project.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // --- THREE.JS BACKGROUND ANIMATION ---
+        const initThreeJS = () => {
+            const container = document.getElementById('canvas-container');
+            const scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x0f172a, 0.002);
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
+            const material = new THREE.MeshPhongMaterial({ color: 0x475569, transparent: true, opacity: 0.8 });
+            const accentMaterial = new THREE.MeshPhongMaterial({ color: 0xf97316, wireframe: true });
+            const structureGroup = new THREE.Group();
+            for (let x = -20; x <= 20; x += 10) {
+                for (let z = -20; z <= 20; z += 10) {
+                    const colHeight = Math.random() * 10 + 5;
+                    const col = new THREE.Mesh(new THREE.BoxGeometry(0.5, colHeight, 0.5), material);
+                    col.position.set(x, colHeight/2 - 10, z);
+                    structureGroup.add(col);
+                    if (Math.random() > 0.5) {
+                        const beam = new THREE.Mesh(new THREE.BoxGeometry(10, 0.2, 0.2), accentMaterial);
+                        beam.position.set(x + 5, Math.random() * 5 - 5, z);
+                        structureGroup.add(beam);
+                    }
+                }
+            }
+            scene.add(structureGroup);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            const pointLight = new THREE.PointLight(0xf97316, 1, 50);
+            pointLight.position.set(10, 10, 10);
+            scene.add(pointLight);
+            camera.position.z = 30;
+            let mouseX = 0, mouseY = 0;
+            document.addEventListener('mousemove', (event) => {
+                mouseX = (event.clientX - window.innerWidth / 2) * 0.05;
+                mouseY = (event.clientY - window.innerHeight / 2) * 0.05;
+            });
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            const animate = () => {
+                requestAnimationFrame(animate);
+                structureGroup.rotation.y += 0.002;
+                structureGroup.rotation.x += 0.001;
+                camera.position.x += (mouseX - camera.position.x) * 0.05;
+                camera.position.y += (-mouseY - camera.position.y) * 0.05;
+                camera.lookAt(scene.position);
+                renderer.render(scene, camera);
+            };
+            animate();
+        };
+
+        // --- GSAP SCROLL ANIMATIONS ---
+        const initAnimations = () => {
+            gsap.registerPlugin(ScrollTrigger);
+            gsap.to(".gsap-hero", { opacity: 1, y: 0, duration: 1.5, ease: "power4.out", delay: 0.5 });
+            gsap.utils.toArray('.gsap-fade-left').forEach(element => { gsap.from(element, { scrollTrigger: { trigger: element, start: "top 80%" }, x: -50, opacity: 0, duration: 1 }); });
+            gsap.utils.toArray('.gsap-fade-right').forEach(element => { gsap.from(element, { scrollTrigger: { trigger: element, start: "top 80%" }, x: 50, opacity: 0, duration: 1 }); });
+            gsap.utils.toArray('.gsap-up').forEach(element => { gsap.from(element, { scrollTrigger: { trigger: element, start: "top 85%" }, y: 30, opacity: 0, duration: 1 }); });
+            gsap.from(".gsap-stagger", { scrollTrigger: { trigger: ".gsap-stagger", start: "top 80%" }, y: 50, opacity: 0, duration: 0.8, stagger: 0.2 });
+        };
+
+        // UI Logic
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('translate-x-full');
+        }
+
+        // --- VISUALIZER LOGIC (SCOPED) ---
+        
+        // 1. SLAB VISUALIZER
+        (() => {
+            const slabDesignData = {
+                dims: { lx: 4.0, ly: 5.39, D: 230, d: 200, cover: 30 },
+                steel: {
+                    mainX: { dia: 10, spacing: 280, color: '#f87171' },
+                    mainY: { dia: 10, spacing: 300, color: '#60a5fa' },
+                    torsion: { dia: 8, spacing: 240, color: '#4ade80' }
+                }
+            };
+            let slabState = { view: 'plan', showDims: true };
+            const slabApp = {
+                setView: (v) => { slabState.view = v; slabApp.render(); },
+                toggleDims: () => { slabState.showDims = !slabState.showDims; slabApp.render(); },
+                render: () => {
+                    const container = document.getElementById('svg-container-slab');
+                    if (!container) return;
+                    // Update Buttons
+                    ['btn-plan-slab', 'btn-secX-slab', 'btn-secY-slab', 'btn-dims-slab'].forEach(id => {
+                        const btn = document.getElementById(id);
+                        if (!btn) return;
+                        let isActive = false;
+                        if(id === 'btn-plan-slab' && slabState.view === 'plan') isActive = true;
+                        if(id === 'btn-secX-slab' && slabState.view === 'sectionX') isActive = true;
+                        if(id === 'btn-secY-slab' && slabState.view === 'sectionY') isActive = true;
+                        if(id === 'btn-dims-slab' && slabState.showDims) isActive = true;
+                        btn.className = isActive 
+                            ? "p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-blue-600 text-white shadow-lg shadow-blue-900/50"
+                            : (id === 'btn-dims-slab' ? "p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-slate-800 text-slate-300 hover:bg-slate-700" : "p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-slate-800 text-slate-300 hover:bg-slate-700");
+                        if(id === 'btn-dims-slab' && slabState.showDims) btn.className = "p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-emerald-600 text-white shadow-lg shadow-emerald-900/50";
+                    });
+                    document.getElementById('scale-label-slab').innerText = slabState.view === 'plan' ? 'Scale: 1:100 (Approx)' : 'Vertical Scale Exaggerated';
+                    
+                    // Generate SVG
+                    let content = '';
+                    if (slabState.view === 'plan') {
+                        const w = 400, h = 539, p=40;
+                        content = `<svg viewBox="0 0 ${w+p*2} ${h+p*2}" class="w-full h-full"><defs><marker id="ah-s" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/></marker></defs><g transform="translate(${p},${p})"><rect width="${w}" height="${h}" fill="#1e293b" stroke="#64748b" stroke-width="4"/>`;
+                        // Bars
+                        for(let i=0; i<15; i++) content += `<line x1="10" y1="${(i+1)*(h/16)}" x2="${w-10}" y2="${(i+1)*(h/16)}" stroke="#60a5fa" stroke-width="2" opacity="0.6"/>`;
+                        for(let i=0; i<12; i++) content += `<line x1="${(i+1)*(w/13)}" y1="10" x2="${(i+1)*(w/13)}" y2="${h-10}" stroke="#f87171" stroke-width="2" opacity="0.6"/>`;
+                        // Corners
+                        [[0,0],[w-80,0],[0,h-80],[w-80,h-80]].forEach(pos => content+=`<g transform="translate(${pos[0]},${pos[1]})"><rect width="80" height="80" fill="rgba(74,222,128,0.1)" stroke="#4ade80" stroke-dasharray="2,2"/><line x1="0" y1="0" x2="80" y2="80" stroke="#4ade80"/><line x1="80" y1="0" x2="0" y2="80" stroke="#4ade80"/></g>`);
+                        if(slabState.showDims) content += `<text x="${w/2}" y="-20" text-anchor="middle" class="fill-slate-400 text-xs">Lx = 4000</text><text x="-20" y="${h/2}" transform="rotate(-90,-20,${h/2})" text-anchor="middle" class="fill-slate-400 text-xs">Ly = 5390</text>`;
+                        content += `</g></svg>`;
+                    } else {
+                         // Section
+                        const w = slabState.view === 'sectionX' ? 400 : 539;
+                        const d = 150; 
+                        content = `<svg viewBox="0 0 ${w+80} 300" class="w-full h-full"><defs><marker id="ah-s" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/></marker></defs><g transform="translate(40,50)"><rect width="${w}" height="${d}" fill="#1e293b" stroke="#64748b" stroke-width="2"/>`;
+                        content += `<line x1="20" y1="${d-20}" x2="${w-20}" y2="${d-20}" stroke="#f87171" stroke-width="4"/><polyline points="0,30 50,30 100,${d-20}" fill="none" stroke="#f87171" stroke-width="3" stroke-dasharray="5,2"/>`;
+                        for(let i=0; i<10; i++) content += `<circle cx="${(i+1)*(w/11)}" cy="${d-28}" r="4" fill="#60a5fa"/>`;
+                        if(slabState.showDims) content += `<line x1="${w+20}" y1="0" x2="${w+20}" y2="${d}" stroke="#94a3b8" marker-end="url(#ah-s)"/><text x="${w+30}" y="${d/2}" class="fill-slate-400 text-xs">230mm</text>`;
+                        content += `</g></svg>`;
+                    }
+                    container.innerHTML = content;
+                }
+            };
+            // Event Listeners
+            document.getElementById('btn-plan-slab').addEventListener('click', () => slabApp.setView('plan'));
+            document.getElementById('btn-secX-slab').addEventListener('click', () => slabApp.setView('sectionX'));
+            document.getElementById('btn-secY-slab').addEventListener('click', () => slabApp.setView('sectionY'));
+            document.getElementById('btn-dims-slab').addEventListener('click', () => slabApp.toggleDims());
+            slabApp.render();
+        })();
+
+        // 2. BEAM VISUALIZER
+        (() => {
+            let beamState = { view: 'elevation', showDims: true };
+            const beamApp = {
+                render: () => {
+                    const container = document.getElementById('svg-container-beam');
+                    if (!container) return;
+                    ['btn-elev-beam', 'btn-sec-beam', 'btn-dims-beam'].forEach(id => {
+                        const btn = document.getElementById(id);
+                        if (!btn) return;
+                        let isActive = (id === 'btn-elev-beam' && beamState.view === 'elevation') || (id === 'btn-sec-beam' && beamState.view === 'section') || (id === 'btn-dims-beam' && beamState.showDims);
+                        btn.className = isActive ? "p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-blue-600 text-white shadow-lg shadow-blue-900/50" : "p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-slate-800 text-slate-300 hover:bg-slate-700";
+                        if(id === 'btn-dims-beam' && beamState.showDims) btn.className = "p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-emerald-600 text-white shadow-lg shadow-emerald-900/50 col-span-2";
+                    });
+                    document.getElementById('scale-label-beam').innerText = beamState.view === 'elevation' ? 'Longitudinal (NTS)' : 'Cross Section (1:5)';
+                    
+                    let content = '';
+                    if (beamState.view === 'elevation') {
+                        content = `<svg viewBox="0 0 600 200" class="w-full h-full"><defs><marker id="ah-b" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/></marker></defs><g transform="translate(40,40)"><rect width="520" height="100" fill="#1e293b" stroke="#64748b" stroke-width="2"/><line x1="0" y1="20" x2="520" y2="20" stroke="#60a5fa" stroke-width="2"/><path d="M10 80 L510 80" stroke="#f87171" stroke-width="4"/>`;
+                        for(let i=0; i<15; i++) content += `<line x1="${20 + i*35}" y1="20" x2="${20 + i*35}" y2="80" stroke="#4ade80" stroke-width="2"/>`;
+                        if(beamState.showDims) content += `<line x1="0" y1="120" x2="520" y2="120" stroke="#94a3b8" marker-end="url(#ah-b)"/><text x="260" y="140" text-anchor="middle" class="fill-slate-400 text-xs">Span = 5.62m</text>`;
+                        content += `</g></svg>`;
+                    } else {
+                        content = `<svg viewBox="0 0 300 400" class="w-full h-full"><g transform="translate(50,50)"><rect width="200" height="300" fill="#1e293b" stroke="#64748b" stroke-width="2"/><rect x="20" y="20" width="160" height="260" fill="none" stroke="#4ade80" stroke-width="3"/>`;
+                        content += `<circle cx="50" cy="270" r="8" fill="#f87171"/><circle cx="100" cy="270" r="8" fill="#f87171"/><circle cx="150" cy="270" r="8" fill="#f87171"/>`;
+                        content += `<circle cx="30" cy="30" r="6" fill="#60a5fa"/><circle cx="170" cy="30" r="6" fill="#60a5fa"/>`;
+                        if(beamState.showDims) content += `<text x="100" y="-20" text-anchor="middle" class="fill-slate-400 text-xs">230</text><text x="220" y="150" class="fill-slate-400 text-xs">500</text>`;
+                        content += `</g></svg>`;
+                    }
+                    container.innerHTML = content;
+                }
+            };
+            document.getElementById('btn-elev-beam').addEventListener('click', () => { beamState.view = 'elevation'; beamApp.render(); });
+            document.getElementById('btn-sec-beam').addEventListener('click', () => { beamState.view = 'section'; beamApp.render(); });
+            document.getElementById('btn-dims-beam').addEventListener('click', () => { beamState.showDims = !beamState.showDims; beamApp.render(); });
+            beamApp.render();
+        })();
+
+        // 3. COLUMN VISUALIZER
+        (() => {
+            let colState = { view: 'elevation', showDims: true };
+            const colApp = {
+                render: () => {
+                    const container = document.getElementById('svg-container-col');
+                    if (!container) return;
+                    ['btn-elev-col', 'btn-sec-col', 'btn-dims-col'].forEach(id => {
+                        const btn = document.getElementById(id);
+                        if (!btn) return;
+                        let isActive = (id === 'btn-elev-col' && colState.view === 'elevation') || (id === 'btn-sec-col' && colState.view === 'section') || (id === 'btn-dims-col' && colState.showDims);
+                        btn.className = isActive ? "p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-blue-600 text-white shadow-lg shadow-blue-900/50" : "p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-slate-800 text-slate-300 hover:bg-slate-700";
+                        if(id === 'btn-dims-col' && colState.showDims) btn.className = "p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-emerald-600 text-white shadow-lg shadow-emerald-900/50 col-span-2";
+                    });
+                    document.getElementById('scale-label-col').innerText = colState.view === 'elevation' ? 'Elevation (NTS)' : 'Section (1:5)';
+
+                    let content = '';
+                    if (colState.view === 'elevation') {
+                        content = `<svg viewBox="0 0 300 500" class="w-full h-full"><defs><marker id="ah-c" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/></marker></defs><g transform="translate(80,40)"><rect width="140" height="400" fill="#1e293b" stroke="#64748b" stroke-width="2"/>`;
+                        content += `<line x1="20" y1="0" x2="20" y2="400" stroke="#f87171" stroke-width="4"/><line x1="120" y1="0" x2="120" y2="400" stroke="#f87171" stroke-width="4"/>`;
+                        for(let i=0; i<12; i++) content += `<line x1="15" y1="${i*35}" x2="125" y2="${i*35}" stroke="#4ade80" stroke-width="2"/>`;
+                        if(colState.showDims) content += `<line x1="160" y1="0" x2="160" y2="400" stroke="#94a3b8" marker-end="url(#ah-c)"/><text x="170" y="200" class="fill-slate-400 text-xs" transform="rotate(90, 170, 200)">L = 3.4m</text>`;
+                        content += `</g></svg>`;
+                    } else {
+                        content = `<svg viewBox="0 0 400 500" class="w-full h-full"><g transform="translate(50,50)"><rect width="300" height="400" fill="#1e293b" stroke="#64748b" stroke-width="2"/><rect x="30" y="30" width="240" height="340" fill="none" stroke="#4ade80" stroke-width="3"/>`;
+                        [[50,50],[250,50],[50,350],[250,350],[50,200],[250,200]].forEach(p=> content+=`<circle cx="${p[0]}" cy="${p[1]}" r="12" fill="#f87171"/>`);
+                        if(colState.showDims) content += `<text x="150" y="-20" text-anchor="middle" class="fill-slate-400 text-xs">350mm</text><text x="320" y="200" class="fill-slate-400 text-xs">450mm</text>`;
+                        content += `</g></svg>`;
+                    }
+                    container.innerHTML = content;
+                }
+            };
+            document.getElementById('btn-elev-col').addEventListener('click', () => { colState.view = 'elevation'; colApp.render(); });
+            document.getElementById('btn-sec-col').addEventListener('click', () => { colState.view = 'section'; colApp.render(); });
+            document.getElementById('btn-dims-col').addEventListener('click', () => { colState.showDims = !colState.showDims; colApp.render(); });
+            colApp.render();
+        })();
+
+        // 4. FOOTING VISUALIZER
+        (() => {
+            let footState = { view: 'plan', showDims: true };
+            const footApp = {
+                render: () => {
+                    const container = document.getElementById('svg-container-foot');
+                    if (!container) return;
+                    ['btn-plan-foot', 'btn-sec-foot', 'btn-dims-foot'].forEach(id => {
+                        const btn = document.getElementById(id);
+                        if (!btn) return;
+                        let isActive = (id === 'btn-plan-foot' && footState.view === 'plan') || (id === 'btn-sec-foot' && footState.view === 'section') || (id === 'btn-dims-foot' && footState.showDims);
+                        btn.className = isActive ? "p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-blue-600 text-white shadow-lg shadow-blue-900/50" : "p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-slate-800 text-slate-300 hover:bg-slate-700";
+                        if(id === 'btn-dims-foot' && footState.showDims) btn.className = "p-2 text-sm rounded flex items-center justify-center gap-2 transition-colors bg-emerald-600 text-white shadow-lg shadow-emerald-900/50 col-span-2";
+                    });
+                    document.getElementById('scale-label-foot').innerText = footState.view === 'plan' ? 'Plan (1:20)' : 'Section (1:20)';
+
+                    let content = '';
+                    if (footState.view === 'plan') {
+                        const s=400;
+                        content = `<svg viewBox="0 0 500 500" class="w-full h-full"><defs><marker id="ah-f" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/></marker></defs><g transform="translate(50,50)"><rect width="${s}" height="${s}" fill="#1e293b" stroke="#64748b" stroke-width="3"/>`;
+                        for(let i=1; i<10; i++) content += `<line x1="${i*40}" y1="10" x2="${i*40}" y2="${s-10}" stroke="#f87171" stroke-width="1" opacity="0.6"/><line x1="10" y1="${i*40}" x2="${s-10}" y2="${i*40}" stroke="#f87171" stroke-width="1" opacity="0.6"/>`;
+                        content += `<rect x="165" y="165" width="70" height="70" fill="#334155" stroke="#94a3b8" stroke-width="2"/>`; // Column
+                        if(footState.showDims) content += `<text x="${s/2}" y="-20" text-anchor="middle" class="fill-slate-400 text-xs">1300mm</text>`;
+                        content += `</g></svg>`;
+                    } else {
+                        const w=400, d=100;
+                        content = `<svg viewBox="0 0 500 300" class="w-full h-full"><g transform="translate(50,50)"><rect x="165" y="-50" width="70" height="50" fill="#334155"/><rect width="${w}" height="${d}" fill="#1e293b" stroke="#64748b" stroke-width="3"/>`;
+                        content += `<line x1="20" y1="${d-20}" x2="${w-20}" y2="${d-20}" stroke="#f87171" stroke-width="3"/>`;
+                        for(let i=1; i<10; i++) content += `<circle cx="${i*40}" cy="${d-25}" r="3" fill="#f87171"/>`;
+                        content += `<path d="M170 -40 L170 ${d-25} L200 ${d-25}" fill="none" stroke="#4ade80" stroke-width="2"/>`;
+                        if(footState.showDims) content += `<text x="${w/2}" y="${d+30}" text-anchor="middle" class="fill-slate-400 text-xs">1300mm</text><text x="${w+20}" y="${d/2}" class="fill-slate-400 text-xs">D=300</text>`;
+                        content += `</g></svg>`;
+                    }
+                    container.innerHTML = content;
+                }
+            };
+            document.getElementById('btn-plan-foot').addEventListener('click', () => { footState.view = 'plan'; footApp.render(); });
+            document.getElementById('btn-sec-foot').addEventListener('click', () => { footState.view = 'section'; footApp.render(); });
+            document.getElementById('btn-dims-foot').addEventListener('click', () => { footState.showDims = !footState.showDims; footApp.render(); });
+            footApp.render();
+        })();
+
+        // Initialize Main Site Logic
+        window.onload = () => {
+            initThreeJS();
+            initAnimations();
+            lucide.createIcons();
+        };
+
+    </script>
+</body>
+</html>
